@@ -355,7 +355,7 @@ LayerData Layer::report(
   LayerData layerData;
   take_stream_stats_average();
   int TP_size = workload->model_parallel_npu_group;
-  int PP_size = workload->pipeline_model_parallelism;
+  int PP_size = std::max(1, workload->pipeline_model_parallelism);
   int DP_size = workload->all_gpus / (TP_size * PP_size);
   int EP_size = workload->expert_parallel_npu_group;
   int vpp = workload->vpp;
@@ -563,7 +563,7 @@ LayerData Layer::report(
   LayerData layerData;
   take_stream_stats_average();
   int TP_size = workload->model_parallel_npu_group;
-  int PP_size = workload->pipeline_model_parallelism;
+  int PP_size = std::max(1, workload->pipeline_model_parallelism);
   int vpp = workload->vpp;
   uint32_t pp_commsize = workload->pp_commsize;
   int DP_size = generator->all_gpus[0] / (TP_size * PP_size);

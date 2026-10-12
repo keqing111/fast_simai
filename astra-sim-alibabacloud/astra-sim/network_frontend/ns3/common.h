@@ -178,7 +178,8 @@ void monitor_qlen(FILE* qlen_output, NodeContainer *n){
 			sw->PrintSwitchQlen(qlen_output);
 		}
 	}
-	Simulator::Schedule(MicroSeconds(qlen_mon_interval), &monitor_qlen, qlen_output, n);
+	if (Simulator::Now().GetMicroSeconds() + qlen_mon_interval <= mon_end)
+		Simulator::Schedule(MicroSeconds(qlen_mon_interval), &monitor_qlen, qlen_output, n);
 }
 void monitor_bw(FILE* bw_output, NodeContainer *n){
 	for (uint32_t i = 0; i < n->GetN(); i++){
@@ -193,7 +194,8 @@ void monitor_bw(FILE* bw_output, NodeContainer *n){
 			host->GetObject<RdmaDriver>()->m_rdma->PrintHostBW(bw_output, bw_mon_interval);
 		}
 	}
-	Simulator::Schedule(MicroSeconds(bw_mon_interval), &monitor_bw, bw_output, n);
+	if (Simulator::Now().GetMicroSeconds() + bw_mon_interval <= mon_end)
+		Simulator::Schedule(MicroSeconds(bw_mon_interval), &monitor_bw, bw_output, n);
 }
 void monitor_qp_rate(FILE* rate_output, NodeContainer *n){
 	for(uint32_t i = 0; i < n->GetN(); i++){
@@ -202,7 +204,8 @@ void monitor_qp_rate(FILE* rate_output, NodeContainer *n){
 			host->GetObject<RdmaDriver>()->m_rdma->PrintQPRate(rate_output);
 		}
 	}
-	Simulator::Schedule(MicroSeconds(qp_mon_interval), &monitor_qp_rate, rate_output, n);
+	if (Simulator::Now().GetMicroSeconds() + qp_mon_interval <= mon_end)
+		Simulator::Schedule(MicroSeconds(qp_mon_interval), &monitor_qp_rate, rate_output, n);
 }
 void monitor_qp_cnp_number(FILE* cnp_output, NodeContainer *n){
 	for(uint32_t i = 0; i < n->GetN(); i++){
@@ -211,7 +214,8 @@ void monitor_qp_cnp_number(FILE* cnp_output, NodeContainer *n){
 			host->GetObject<RdmaDriver>()->m_rdma->PrintQPCnpNumber(cnp_output);
 		}
 	}
-	Simulator::Schedule(MicroSeconds(qp_mon_interval), &monitor_qp_cnp_number, cnp_output, n);
+	if (Simulator::Now().GetMicroSeconds() + qp_mon_interval <= mon_end)
+		Simulator::Schedule(MicroSeconds(qp_mon_interval), &monitor_qp_cnp_number, cnp_output, n);
 }
 void schedule_monitor(){
 	FILE* qlen_output = fopen(qlen_mon_file.c_str(), "w"); 
@@ -444,9 +448,12 @@ void TakeDownLink(NodeContainer n, Ptr<Node> a, Ptr<Node> b) {
 }
 
 string get_output_file_name(string config_file, string output_file){
+	if (!output_file.empty() && output_file[0] == '/')
+		return output_file;
 	auto idx = config_file.find_last_of('/');
-	string ans = output_file.substr(0, output_file.length()-4) + config_file.substr(idx+7);
-	return ans;
+	if (idx == string::npos)
+		return output_file;
+	return config_file.substr(0, idx + 1) + output_file;
 }
 
 uint64_t get_nic_rate(NodeContainer &n) {

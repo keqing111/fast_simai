@@ -175,7 +175,6 @@ void SendFlow(int src, int dst, uint64_t maxPacketCount,
       exit(-1);
     }
   }
-  send_lat *= 1000; // ns → ps (ns3 Time unit)
   flow_input.idx++;
   if(real_PacketCount == 0) real_PacketCount = 1;
     MockNcclLog* NcclLog = MockNcclLog::getInstance();
@@ -192,7 +191,10 @@ void SendFlow(int src, int dst, uint64_t maxPacketCount,
     MtpInterface::explicitCriticalSection cs;
     #endif
     ApplicationContainer appCon = clientHelper.Install(n.Get(src));
-    appCon.Start(Time(send_lat));
+    // The table and AS_SEND_LAT are nanoseconds.  In this integration Start()
+    // is the delay from the event that released the flow; adding Now() would
+    // count an external schedule offset twice.
+    appCon.Start(NanoSeconds(send_lat));
     waiting_to_sent_callback[std::make_pair(request->flowTag.current_flow_id,std::make_pair(src,dst))]++;
     waiting_to_notify_receiver[std::make_pair(request->flowTag.current_flow_id,std::make_pair(src,dst))]++;
     #ifdef NS3_MTP
@@ -345,11 +347,6 @@ void qp_finish(FILE *fout, Ptr<RdmaQueuePair> q) {
           (CustomHeader::GetStaticWholeHeaderSize() -
            IntHeader::GetStaticSize()); 
   uint64_t standalone_fct = base_rtt + total_bytes * 8000000000lu / b;
-  fprintf(fout, "%08x %08x %u %u %lu %lu %lu %lu\n", q->sip.Get(), q->dip.Get(),
-          q->sport, q->dport, q->m_size, q->startTime.GetTimeStep(),
-          (Simulator::Now() - q->startTime).GetTimeStep(), standalone_fct);
-  fflush(fout);
-
   AstraSim::ncclFlowTag flowTag;
   uint64_t notify_size;
   {
@@ -367,6 +364,19 @@ void qp_finish(FILE *fout, Ptr<RdmaQueuePair> q) {
       exit(-1);
     }
     flowTag = sender_src_port_map[make_pair(q->sport, make_pair(sid, did))];
+    if (flowTag.external_schedule) {
+      fprintf(fout, "%08x %08x %u %u %lu %lu %lu %lu %d\n",
+              q->sip.Get(), q->dip.Get(), q->sport, q->dport, q->m_size,
+              q->startTime.GetTimeStep(),
+              (Simulator::Now() - q->startTime).GetTimeStep(), standalone_fct,
+              flowTag.current_flow_id);
+    } else {
+      fprintf(fout, "%08x %08x %u %u %lu %lu %lu %lu\n", q->sip.Get(),
+              q->dip.Get(), q->sport, q->dport, q->m_size,
+              q->startTime.GetTimeStep(),
+              (Simulator::Now() - q->startTime).GetTimeStep(), standalone_fct);
+    }
+    fflush(fout);
     sender_src_port_map.erase(make_pair(q->sport, make_pair(sid, did)));
     received_chunksize[std::make_pair(flowTag.current_flow_id,std::make_pair(sid,did))]+=q->m_size;
     if(!is_receive_finished(sid,did,flowTag)) {
@@ -382,6 +392,14 @@ void qp_finish(FILE *fout, Ptr<RdmaQueuePair> q) {
     #endif
   }
   notify_receiver_receive_data(sid, did, notify_size, flowTag);
+  if (flowTag.external_schedule) {
+    if (sid < AstraSim::Sys::all_generators.size() &&
+        AstraSim::Sys::all_generators[sid] != nullptr) {
+      AstraSim::Sys::all_generators[sid]
+          ->is_there_pending_sends[std::make_pair(did, flowTag.tag_id)] = false;
+    }
+    notify_sender_sending_finished(sid, did, notify_size, flowTag);
+  }
 }
 
 void send_finish(FILE *fout, Ptr<RdmaQueuePair> q) {
@@ -408,7 +426,9 @@ void send_finish(FILE *fout, Ptr<RdmaQueuePair> q) {
     cs.ExitSection();
     #endif
   }
-  notify_sender_sending_finished(sid, did, all_sent_chunksize, flowTag);
+  if (!flowTag.external_schedule) {
+    notify_sender_sending_finished(sid, did, all_sent_chunksize, flowTag);
+  }
 }
 
 int main1(string network_topo,string network_conf) {
@@ -419,6 +439,7 @@ int main1(string network_topo,string network_conf) {
     return -1;
   SetConfig();
   SetupNetwork(qp_finish,send_finish);
+  schedule_monitor();
 
 std::cout << "Running Simulation.\n";
   fflush(stdout);

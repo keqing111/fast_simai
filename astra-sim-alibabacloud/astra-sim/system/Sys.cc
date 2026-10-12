@@ -480,6 +480,9 @@ int Sys::sim_send(
     sim_request* request,
     void (*msg_handler)(void* fun_arg),
     void* fun_arg) {
+  if (request->flowTag.external_schedule) {
+    is_there_pending_sends[std::make_pair(dst, tag)] = true;
+  }
   if (delay == 0 && fun_arg == nullptr) {
     Sys::sysCriticalSection cs;
       
@@ -1698,6 +1701,15 @@ DataSet* Sys::generate_collective(
   }
   return dataset;
 }
+bool Sys::has_active_sends() const {
+  for (const auto& pending : is_there_pending_sends) {
+    if (pending.second) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void Sys::call_events() {
   if(event_queue.find(Sys::boostedTick())==event_queue.end()){
     goto FINISH_CHECK;
@@ -1719,7 +1731,8 @@ void Sys::call_events() {
   event_queue.erase(Sys::boostedTick());
   cs.ExitSection();
   }
-  FINISH_CHECK: if ((finished_workloads == 1 && event_queue.size() == 0 && pending_sends.size() == 0) ||
+  FINISH_CHECK: if ((finished_workloads == 1 && event_queue.size() == 0 &&
+                     pending_sends.size() == 0 && !has_active_sends()) ||
       initialized == false) {
     delete this;
   }
@@ -2103,7 +2116,8 @@ void Sys::handleEvent(void* arg) {
           sendhd->receiverNodeId, sendhd->tag)] = false;
       
       if(node->event_queue.find(Sys::boostedTick())==node->event_queue.end())
-        if ((node->finished_workloads == 1 && node->event_queue.size() == 0 && node->pending_sends.size() == 0) ||
+        if ((node->finished_workloads == 1 && node->event_queue.size() == 0 &&
+             node->pending_sends.size() == 0 && !node->has_active_sends()) ||
       node->initialized == false) {
         delete node;
       }

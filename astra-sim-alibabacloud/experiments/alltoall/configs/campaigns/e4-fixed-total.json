@@ -1,0 +1,15 @@
+{
+  "name": "e4-fixed-total",
+  "profiles": [
+    {"id": "T3", "hardware": "../hardware/h100_4s4g_100g.json"},
+    {"id": "T4", "hardware": "../hardware/h100_4s4g_100g_2to1.json"}
+  ],
+  "schema_version": 1,
+  "schedulers": ["direct-concurrent", "spreadout", "roundrobin", "fast"],
+  "workloads": [
+    {"id": "balanced-fixed-large", "generator": "balanced", "total_bytes_per_device": 15728640, "seeds": [11]},
+    {"id": "uniform-fixed-large", "generator": "fast-uniform", "parameters": {"bytes_per_unit": 1}, "total_bytes_per_device": 15728640, "seeds": [11, 23, 37, 53, 71]},
+    {"id": "zipf05-fixed-large", "generator": "fast-zipf", "parameters": {"alpha": 0.5, "bytes_per_unit": 1}, "total_bytes_per_device": 15728640, "seeds": [11, 23, 37, 53, 71]},
+    {"id": "zipf09-fixed-large", "generator": "fast-zipf", "parameters": {"alpha": 0.9, "bytes_per_unit": 1}, "total_bytes_per_device": 15728640, "seeds": [11, 23, 37, 53, 71]}
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "e7-load-sweep",
+  "profiles": [
+    {"id": "T1", "hardware": "../hardware/h100_2s4g_100g.json"},
+    {"id": "T4", "hardware": "../hardware/h100_4s4g_100g_2to1.json"}
+  ],
+  "schema_version": 1,
+  "schedulers": ["direct-concurrent", "spreadout", "roundrobin", "fast"],
+  "workloads": [
+    {"id": "balanced-perdev-1m", "generator": "balanced", "total_bytes_per_device": 1048576, "seeds": [11]},
+    {"id": "balanced-perdev-15m", "generator": "balanced", "total_bytes_per_device": 15728640, "seeds": [11]},
+    {"id": "balanced-perdev-64m", "generator": "balanced", "total_bytes_per_device": 67108864, "seeds": [11]},
+    {"id": "zipf09-perdev-1m", "generator": "fast-zipf", "parameters": {"alpha": 0.9, "bytes_per_unit": 1}, "total_bytes_per_device": 1048576, "seeds": [11]},
+    {"id": "zipf09-perdev-15m", "generator": "fast-zipf", "parameters": {"alpha": 0.9, "bytes_per_unit": 1}, "total_bytes_per_device": 15728640, "seeds": [11]},
+    {"id": "zipf09-perdev-64m", "generator": "fast-zipf", "parameters": {"alpha": 0.9, "bytes_per_unit": 1}, "total_bytes_per_device": 67108864, "seeds": [11]}
+  ]
+}

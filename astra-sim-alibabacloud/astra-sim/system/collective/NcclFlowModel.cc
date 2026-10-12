@@ -251,7 +251,8 @@ void NcclFlowModel::run(EventType event, CallData* data) {
               phy_ready(j, flow_model.second.flow_id);
             }
             #else
-            if (flow_model.second.chunk_id == 0) {
+            if (flow_model.second.external_schedule ||
+                flow_model.second.chunk_id == 0) {
               pQps->peer_qps[std::make_pair(
                   flow_model.second.channel_id,
                   std::make_pair(
@@ -464,12 +465,14 @@ void NcclFlowModel::insert_packets(int channel_id, int flow_id) {
   }
   int current_receiver = f.dest;
   std::vector<int> current_sender = f.prev;
+  const int packet_sender =
+      current_sender.empty() && f.external_schedule ? f.src : current_sender[0];
   if ((*zero_latency_packets)[channel_id] > 0) {
     NcclLog->writeLog(NcclLogLevel::DEBUG,"id:  %d (*zero_latency_packets)[channel_id] > 0",id);
     uint64_t message_size = f.flow_size;
     packets[std::make_pair(channel_id, flow_id)].push_back(MyPacket(
         stream->current_queue_id,
-        current_sender[0], 
+        packet_sender,
         current_receiver,
         message_size,
         channel_id,
@@ -488,7 +491,7 @@ void NcclFlowModel::insert_packets(int channel_id, int flow_id) {
     uint64_t message_size = f.flow_size;
     packets[std::make_pair(channel_id, flow_id)].push_back(MyPacket(
         stream->current_queue_id,
-        current_sender[0],  
+        packet_sender,
         current_receiver,
         message_size,
         channel_id,
@@ -590,6 +593,7 @@ bool NcclFlowModel::ready(int channel_id, int flow_id) {
   snd_req.flowTag.algorithm = m_algorithm;
   snd_req.flowTag.protocol = m_protocol;
   snd_req.flowTag.gpus_per_node = Sys::all_generators[id] ? Sys::all_generators[id]->ngpus_per_node : -1;
+  snd_req.flowTag.external_schedule = flow_model.external_schedule;
   if (this->comType == ComType::All_Reduce_NVLS)
     snd_req.flowTag.nvls_on = true;
   else
@@ -601,7 +605,7 @@ bool NcclFlowModel::ready(int channel_id, int flow_id) {
       channel_id,
       EventType::PacketSentFinshed);
   stream->owner->front_end_sim_send(
-      0,
+      flow_model.external_schedule ? flow_model.start_ns : 0,
       Sys::dummy_data,
       snd_req.reqCount,
       UINT8,

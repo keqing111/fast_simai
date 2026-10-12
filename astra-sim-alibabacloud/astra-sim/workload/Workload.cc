@@ -45,6 +45,12 @@ Workload::Workload(
   this->checkpoint_initiated = false;
   this->collective_issued = false;
   this->current_state = LoopState::Forward_Pass;
+  this->model_parallel_npu_group = 1;
+  this->expert_parallel_npu_group = 1;
+  this->pipeline_model_parallelism = 1;
+  this->GA = 1;
+  this->all_gpus = 1;
+  this->vpp = 1;
   this->generator = generator;
   this->TOTAL_PASS = TOTAL_PASS;
   this->pass_counter = 0;
@@ -233,11 +239,16 @@ void Workload::check_for_sim_end() {
 void Workload::iterate_micro_benchmark() {
   assert(index >= 0);
   assert(index < SIZE);
-  if (current_state != LoopState::Wait_For_Sim_Finish) {
-    for (pass_counter = 0; pass_counter < TOTAL_PASS; pass_counter++) {
-      layers[index]->issue_weight_grad_comm(
-          SchedulingPolicy::None, CollectiveBarrier::Non_Blocking);
-    }
+  if (current_state == LoopState::Wait_For_Sim_Finish) {
+    check_for_sim_end();
+    return;
+  }
+  if (!collective_issued) {
+    current_state = LoopState::Weight_Gradient;
+    collective_issued = true;
+    layers[index]->issue_weight_grad_comm(
+        SchedulingPolicy::None, CollectiveBarrier::Non_Blocking);
+    pass_counter = TOTAL_PASS;
   }
   check_for_sim_end();
 }
@@ -1171,7 +1182,8 @@ bool Workload::initialize_workload(std::string name) {
   }
 
   if (parallelismPolicy == ParallelismPolicy::TransformerFwdInBckwd ||
-      parallelismPolicy == ParallelismPolicy::Transformer) {
+      parallelismPolicy == ParallelismPolicy::Transformer ||
+      parallelismPolicy == ParallelismPolicy::MicroBenchmark) {
         for (size_t i = 1; i < tokens.size(); i = i+1){
           if(tokens[i]=="model_parallel_NPU_group:"){
             model_parallel_npu_group = std::stoi(tokens[i+1]);

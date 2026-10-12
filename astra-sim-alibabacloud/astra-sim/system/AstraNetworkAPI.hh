@@ -47,6 +47,7 @@ struct ncclFlowTag {
   int algorithm = -1; // NCCL_ALGO_UNDEF
   int protocol  = -1; // NCCL_PROTO_UNDEF
   int gpus_per_node = -1; // for link type detection (NVLINK vs NET); -1 = use fallback 8
+  bool external_schedule = false;
   ncclFlowTag():
     channel_id(-1),
     chunk_id(-1),

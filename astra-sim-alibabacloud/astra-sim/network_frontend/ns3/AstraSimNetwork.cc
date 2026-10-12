@@ -18,6 +18,7 @@
 #include "astra-sim/system/RecvPacketEventHadndlerData.hh"
 #include "astra-sim/system/Common.hh"
 #include "SimCCL/mock/MockNcclLog.h"
+#include "SimCCL/mock/MockNcclGroup.h"
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
 #include "ns3/csma-module.h"
@@ -215,11 +216,13 @@ struct user_param {
   string workload;
   string network_topo;
   string network_conf;
+  string schedule;
   user_param() {
     thread = 1;
     workload = "";
     network_topo = "";
     network_conf = "";
+    schedule = "";
   };
   ~user_param(){};
 };
@@ -235,6 +238,7 @@ static int user_param_prase(int argc,char * argv[],struct user_param* user_param
       std::cout<<"-w    workloads default none "<<std::endl;
       std::cout<<"-n    network topo"<<std::endl;
       std::cout<<"-c    network_conf"<<std::endl;
+      std::cout<<"-s    external all-to-all schedule CSV"<<std::endl;
       return 1;
       break;
     case 't':
@@ -248,6 +252,9 @@ static int user_param_prase(int argc,char * argv[],struct user_param* user_param
       break;
     case 'c':
       user_param->network_conf = optarg;
+      break;
+    case 's':
+      user_param->schedule = optarg;
       break;
     default:
       std::cerr<<"-h    help message"<<std::endl;
@@ -264,6 +271,9 @@ int main(int argc, char *argv[]) {
   NcclLog->writeLog(NcclLogLevel::INFO," init SimAI.log ");
   if(user_param_prase(argc,argv,&user_param)){
     return 0;
+  }
+  if (!user_param.schedule.empty()) {
+    MockNccl::MockNcclGroup::set_external_schedule_path(user_param.schedule);
   }
   #ifdef NS3_MTP
   MtpInterface::Enable(user_param.thread);

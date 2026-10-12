@@ -1,0 +1,14 @@
+{
+  "name": "e5-fixed-per-device-scale",
+  "profiles": [
+    {"id": "T0", "hardware": "../hardware/h100_1s4g_nvlink.json"},
+    {"id": "T1", "hardware": "../hardware/h100_2s4g_100g.json"},
+    {"id": "T3", "hardware": "../hardware/h100_4s4g_100g.json"}
+  ],
+  "schema_version": 1,
+  "schedulers": ["direct-concurrent", "spreadout", "roundrobin", "fast"],
+  "workloads": [
+    {"id": "balanced-fixed-per-device", "generator": "balanced", "total_bytes_per_device": 15728640, "seeds": [11]},
+    {"id": "zipf09-fixed-per-device", "generator": "fast-zipf", "parameters": {"alpha": 0.9, "bytes_per_unit": 1}, "total_bytes_per_device": 15728640, "seeds": [11, 23, 37, 53, 71]}
+  ]
+}

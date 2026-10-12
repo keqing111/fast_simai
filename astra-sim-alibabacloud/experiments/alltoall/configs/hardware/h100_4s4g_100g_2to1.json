@@ -1,0 +1,12 @@
+{
+  "gpus_per_server": 4,
+  "inter_alpha_ns": 700,
+  "inter_beta_ns_per_byte": 0.08,
+  "intra_alpha_ns": 100,
+  "intra_beta_ns_per_byte": 0.0023,
+  "link_bandwidth_gbps": 100,
+  "num_servers": 4,
+  "oversubscription": 2,
+  "schema_version": 1,
+  "topology_id": "h100_4s4g_100g_2to1"
+}

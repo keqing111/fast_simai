@@ -1,0 +1,22 @@
+{
+  "name": "e2-one-seed",
+  "profiles": [
+    {"id": "T0", "hardware": "../hardware/h100_1s4g_nvlink.json"},
+    {"id": "T1", "hardware": "../hardware/h100_2s4g_100g.json"},
+    {"id": "T2", "hardware": "../hardware/h100_2s4g_100g_2to1.json"},
+    {"id": "T3", "hardware": "../hardware/h100_4s4g_100g.json"},
+    {"id": "T4", "hardware": "../hardware/h100_4s4g_100g_2to1.json"}
+  ],
+  "schema_version": 1,
+  "schedulers": ["direct-concurrent", "spreadout", "roundrobin", "fast"],
+  "workloads": [
+    {"id": "balanced-small", "generator": "balanced", "parameters": {"pair_bytes": 65536}, "seeds": [11]},
+    {"id": "balanced-large", "generator": "balanced", "parameters": {"pair_bytes": 1048576}, "seeds": [11]},
+    {"id": "uniform-small", "generator": "fast-uniform", "parameters": {"bytes_per_unit": 16}, "seeds": [11]},
+    {"id": "uniform-large", "generator": "fast-uniform", "parameters": {"bytes_per_unit": 256}, "seeds": [11]},
+    {"id": "zipf05-small", "generator": "fast-zipf", "parameters": {"alpha": 0.5, "bytes_per_unit": 16}, "seeds": [11]},
+    {"id": "zipf05-large", "generator": "fast-zipf", "parameters": {"alpha": 0.5, "bytes_per_unit": 256}, "seeds": [11]},
+    {"id": "zipf09-small", "generator": "fast-zipf", "parameters": {"alpha": 0.9, "bytes_per_unit": 16}, "seeds": [11]},
+    {"id": "zipf09-large", "generator": "fast-zipf", "parameters": {"alpha": 0.9, "bytes_per_unit": 256}, "seeds": [11]}
+  ]
+}

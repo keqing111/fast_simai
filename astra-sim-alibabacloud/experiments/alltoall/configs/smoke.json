@@ -1,0 +1,17 @@
+{
+  "hardware": "hardware/h100_2s2g_100g.json",
+  "name": "balanced-smoke",
+  "schedulers": [
+    "direct-concurrent",
+    "spreadout",
+    "roundrobin",
+    "fast"
+  ],
+  "schema_version": 1,
+  "seed": 11,
+  "traffic": {
+    "generator": "balanced",
+    "num_devices": 4,
+    "pair_bytes": 65536
+  }
+}

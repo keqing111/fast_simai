@@ -1,7 +1,7 @@
 [submodule "SimCCL"]
 	path = SimCCL
-	url = https://github.com/aliyun/SimCCL
-	branch = master
+	url = https://github.com/keqing111/fast_simai.git
+	branch = simccl-external-schedule
 [submodule "aicb"]
 	path = aicb
 	url = https://github.com/aliyun/aicb

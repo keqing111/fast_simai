@@ -224,6 +224,7 @@ class Sys : public Callable {
 
   std::map<std::pair<int, int>, std::list<SimSendCaller*>> pending_sends;
   std::map<std::pair<int, int>, bool> is_there_pending_sends;
+  bool has_active_sends() const;
 
   Sys(AstraNetworkAPI* NI,
       AstraMemoryAPI* MEM,
