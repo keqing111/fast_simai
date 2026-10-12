@@ -137,12 +137,16 @@ namespace MockNccl {
     std::map<std::string ,struct ncclInfo*> nccl_infos;  
     bool detailed_dump_header_written = false;
     std::shared_ptr<void> getFlowModels(GroupType type , int rank, AstraSim::ComType op,uint64_t data_size,int layer_num,State loopstate);
+    static void set_external_schedule_path(const std::string& path);
+    static bool external_schedule_enabled();
    private:
+    static std::string external_schedule_path;
     void dumpDetailedFlowModels(const std::string& coll_name, AstraSim::ComType op, uint64_t data_size, const std::map<int,std::shared_ptr<FlowModels>>& rank2flows, const struct ncclInfo* info);
     std::map<int,std::shared_ptr<FlowModels>> genFlowModels(GroupType type , int rank, AstraSim::ComType op,uint64_t data_size);
     std::map<int,std::shared_ptr<FlowModels>> genPATFlowModels(GroupType type, int rank, AstraSim::ComType op, uint64_t data_size);
     std::map<int,std::shared_ptr<FlowModels>> genReduceScatterFlowModels(GroupType type , int rank, uint64_t data_size);
     std::map<int,std::shared_ptr<FlowModels>> genAlltoAllFlowModels(GroupType type, int rank, uint64_t data_size);
+    std::map<int,std::shared_ptr<FlowModels>> genExternalScheduleFlowModels(GroupType type, int rank);
     std::map<int,std::shared_ptr<FlowModels>> genBroadcastFlowModels(GroupType type, int rank, uint64_t data_size);
     std::map<int,std::shared_ptr<FlowModels>> genAllReduceFlowModels(GroupType type , int rank,uint64_t data_size);
     std::map<int,std::shared_ptr<FlowModels>> genAllReduceRingFlowModels(GroupType type , int rank,uint64_t data_size);

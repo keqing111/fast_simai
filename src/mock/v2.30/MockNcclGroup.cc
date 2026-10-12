@@ -13,6 +13,7 @@
 *limitations under the License.
 */
 #include "MockNcclGroup.h"
+#include "ExternalSchedule.h"
 #include "PatAlgorithm.h"
 #include "MockNcclChannel.h"
 #include<vector>
@@ -25,6 +26,16 @@
 #include "MockNcclLog.h"
 using namespace std;
 namespace MockNccl {
+  std::string MockNcclGroup::external_schedule_path;
+
+  void MockNcclGroup::set_external_schedule_path(const std::string& path) {
+    external_schedule_path = path;
+  }
+
+  bool MockNcclGroup::external_schedule_enabled() {
+    return !external_schedule_path.empty();
+  }
+
   MockNcclGroup::MockNcclGroup(int _ngpus,int _gpus_per_nodes,int _TP_size,int _DP_size,int _PP_size,int _EP_size,int _DP_EP_size,std::vector<int>_NVSwitch,GPUType _gpu_type):g_flow_id(0),gpu_type(_gpu_type){
     /*init groups
     */
@@ -360,6 +371,9 @@ namespace MockNccl {
       case AstraSim::ComType::Reduce_Scatter:
         return genReduceScatterFlowModels(type,rank,data_size);
       case AstraSim::ComType::All_to_All:
+        if (external_schedule_enabled()) {
+          return genExternalScheduleFlowModels(type, rank);
+        }
         return genAlltoAllFlowModels(type,rank,data_size);
       case AstraSim::ComType::Broadcast:
         return genBroadcastFlowModels(type,rank,data_size);
@@ -520,6 +534,53 @@ namespace MockNccl {
     for(auto it = rank2flowmodels.begin();it!=rank2flowmodels.end();it++){
       rank2pflowmodels[it->first] = std::make_shared<FlowModels>(it->second);
     }
+    return rank2pflowmodels;
+  }
+
+  std::map<int,std::shared_ptr<FlowModels>> MockNcclGroup::genExternalScheduleFlowModels(
+      GroupType type,
+      int rank) {
+    std::map<int,std::shared_ptr<FlowModels>> rank2pflowmodels;
+    if (GroupIndex.count(std::make_pair(rank, type)) == 0) {
+      throw std::runtime_error("external schedule group does not contain the requesting rank");
+    }
+    const int group_index = GroupIndex[std::make_pair(rank, type)];
+    const GroupInfo& group = AllGroups[group_index];
+    const std::vector<ExternalScheduleFlow> schedule =
+        ExternalSchedule::load(external_schedule_path, group.nRanks);
+    int channels = static_cast<int>(Allringchannels[group_index].size());
+    if (channels <= 0) {
+      channels = 1;
+    }
+    const int chunk_count =
+        std::max(1, static_cast<int>((schedule.size() + channels - 1) / channels));
+    std::map<int, FlowModels> rank2flowmodels;
+    for (std::size_t index = 0; index < schedule.size(); ++index) {
+      const ExternalScheduleFlow& flow = schedule[index];
+      const int channel_id = static_cast<int>(index % channels);
+      const int chunk_id = static_cast<int>(index / channels);
+      const int flow_id = static_cast<int>(flow.flow_id);
+      SingleFlow model(
+          flow_id,
+          flow.src,
+          flow.dst,
+          flow.size_bytes,
+          {},
+          {},
+          {},
+          channel_id,
+          chunk_id,
+          chunk_count,
+          "EXTERNAL",
+          flow.start_ns,
+          true);
+      rank2flowmodels[flow.src][std::make_pair(channel_id, flow_id)] = model;
+    }
+    for (int group_rank : group.Ranks) {
+      rank2pflowmodels[group_rank] =
+          std::make_shared<FlowModels>(rank2flowmodels[group_rank]);
+    }
+    g_flow_id = std::max(g_flow_id, static_cast<int>(schedule.size()));
     return rank2pflowmodels;
   }
 

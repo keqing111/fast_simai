@@ -34,7 +34,9 @@ namespace MockNccl {
     int chunk_id;
     int chunk_count;
     std::string conn_type;
-    SingleFlow(){};
+    uint64_t start_ns;
+    bool external_schedule;
+    SingleFlow(): start_ns(0), external_schedule(false) {};
     SingleFlow(
         int _flow_id,
         int _src,
@@ -46,7 +48,9 @@ namespace MockNccl {
         int _channel_id,
         int _chunk_id,
         int _chunk_count,
-        std::string _conn_type)
+        std::string _conn_type,
+        uint64_t _start_ns = 0,
+        bool _external_schedule = false)
         : flow_id(_flow_id),
           src(_src),
           dest(_dest),
@@ -57,7 +61,9 @@ namespace MockNccl {
           channel_id(_channel_id),
           chunk_id(_chunk_id),
           chunk_count(_chunk_count),
-          conn_type(_conn_type) {}
+          conn_type(_conn_type),
+          start_ns(_start_ns),
+          external_schedule(_external_schedule) {}
     ~SingleFlow(){};
   };
 
