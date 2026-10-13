@@ -349,6 +349,10 @@ E2 one-seed sweep 完成 159/160 次。FAST 在 balanced 场景不产生字节�
 
 图中使用对数纵轴，T4 Direct 的 `failed` 是仿真进程崩溃，不是 makespan 为零。
 
+![E2 balanced-large 四种调度器 makespan 线性坐标对比](report_assets/e2-balanced-large-makespan-linear.png)
+
+线性坐标版便于直接比较跨机场景的绝对时间；T0 的毫秒级差异因数值小而在该图中接近横轴。
+
 ## 分析
 
 均衡流量下 FAST 的收益来自避免 SpreadOut 的保守全局轮次，而不是流量倾斜优化。T1/T3 的 large balanced 上 FAST/Direct 为 1.008×/1.091×，接近持平；T2 上则为 1.999×，说明超卖下阶段化的价值显著增大。16 GPU、1 MiB/点对的完全同步 Direct 暴露了 ns-3/RDMA 路径的稳定性边界，不能把进程崩溃记录成零性能或静默删除。

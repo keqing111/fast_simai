@@ -66,9 +66,9 @@ def e2_balanced_large() -> None:
     profiles = ["T0", "T1", "T2", "T3", "T4"]
     width = 0.19
     x = np.arange(len(profiles))
-    fig, ax = plt.subplots(figsize=(9, 4.6))
-    for index, algorithm in enumerate(ALGORITHMS):
-        values = []
+    values_by_algorithm: dict[str, list[float]] = {}
+    for algorithm in ALGORITHMS:
+        values_by_algorithm[algorithm] = []
         for profile in profiles:
             match = next(
                 (
@@ -80,28 +80,52 @@ def e2_balanced_large() -> None:
                 ),
                 None,
             )
-            values.append(
+            values_by_algorithm[algorithm].append(
                 math.nan
                 if match is None
                 else match["actual_makespan_ns"] / 1_000_000
             )
-        positions = x + (index - 1.5) * width
-        ax.bar(
-            positions,
-            values,
-            width,
-            label=LABELS[algorithm],
-            color=COLORS[algorithm],
-        )
-        for pos, value in zip(positions, values):
-            if math.isnan(value):
-                ax.text(pos, 0.012, "failed", rotation=90, ha="center", va="bottom", fontsize=8)
-    ax.set_yscale("log")
-    ax.set_xticks(x, profiles)
-    ax.set_ylabel("Collective makespan (ms, log scale)")
-    ax.set_title("E2: balanced-large scheduler baseline")
-    ax.legend(ncol=4, loc="upper left")
-    finish(fig, "e2-balanced-large-makespan.png")
+    finite_values = [
+        value
+        for values in values_by_algorithm.values()
+        for value in values
+        if not math.isnan(value)
+    ]
+    for logarithmic, filename in [
+        (True, "e2-balanced-large-makespan.png"),
+        (False, "e2-balanced-large-makespan-linear.png"),
+    ]:
+        fig, ax = plt.subplots(figsize=(9, 4.6))
+        for index, algorithm in enumerate(ALGORITHMS):
+            values = values_by_algorithm[algorithm]
+            positions = x + (index - 1.5) * width
+            ax.bar(
+                positions,
+                values,
+                width,
+                label=LABELS[algorithm],
+                color=COLORS[algorithm],
+            )
+            for position, value in zip(positions, values):
+                if math.isnan(value):
+                    label_y = 0.012 if logarithmic else max(finite_values) * 0.02
+                    ax.text(
+                        position,
+                        label_y,
+                        "failed",
+                        rotation=90,
+                        ha="center",
+                        va="bottom",
+                        fontsize=8,
+                    )
+        if logarithmic:
+            ax.set_yscale("log")
+        ax.set_xticks(x, profiles)
+        scale = ", log scale" if logarithmic else ", linear scale"
+        ax.set_ylabel(f"Collective makespan (ms{scale})")
+        ax.set_title("E2: balanced-large scheduler baseline")
+        ax.legend(ncol=4, loc="upper left")
+        finish(fig, filename)
 
 
 def e3_profile_distribution() -> None:
